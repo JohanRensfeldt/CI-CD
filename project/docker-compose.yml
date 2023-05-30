@@ -1,0 +1,48 @@
+version: '3.7'
+networks:
+  mynetwork:
+    driver: overlay
+services:
+  pulsar-broker:
+    image: apachepulsar/pulsar:latest
+    command: bin/pulsar standalone
+    ports:
+      - 6650:6650
+      - 8080:8080
+    networks:
+      - mynetwork
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.labels.pulsar-broker == true]
+
+  producer:
+    image: johanrensfeldt/pulsar-producer:latest
+    command: python3 /app/producer.py
+    environment:
+      - BROKER_IP=pulsar-broker
+      - API_TOKEN=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
+    networks:
+      - mynetwork
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.labels.producer == true]
+
+  consumer:
+    image: johanrensfeldt/pulsar-consumer:latest
+    command: python3 /app/consumer.py
+    environment:
+      - BROKER_IP=pulsar-broker
+    networks:
+      - mynetwork
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.labels.consumer == true]
